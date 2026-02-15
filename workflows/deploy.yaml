@@ -1,53 +1,52 @@
-name: Deploy to Amazon EKS
+name: Deploy to amazon EKS
 
-on:
+on: 
   push:
     branches:
-      - main
-
+      -main
 env:
-  AWS_REGION: ${{ secrets.AWS_REGION }}
+  AWS_REGION: ${{ secrets.AWS_REGION}}
   ECR_REPOSITORY: web-api
   CLUSTER_NAME: production-eks-cluster
 
-jobs:
+jobs: 
   deploy:
     runs-on: ubuntu-latest
 
     steps:
 
-    - name: Checkout source code
-      uses: actions/checkout@v4
+    -name: Checkout the source code
+    uses: actions/checkout@v4
 
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v4
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: ${{ secrets.AWS_REGION }}
+    -name: Configure AWS credentials
+    uses: aws-actions/configure-aws-credentials@v4
+    with:
+      aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      aws-region: ${{ secrets.AWS_REGION }}
+    
+    -name: Login to Amazon ECR
+    uses: aws-actions/amazon-ecr-login@v2
 
-    - name: Login to Amazon ECR
-      uses: aws-actions/amazon-ecr-login@v2
+    -name: Build Docker image
+    run: |
+      docker build -t web-api ./application
 
-    - name: Build Docker image
-      run: |
-        docker build -t web-api ./application
-
-    - name: Tag image
-      run: |
-        docker tag web-api:latest \
+    -name: Tag image
+    run: |
+      docker tag web-api:latest \
         ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/web-api:latest
 
-    - name: Push image to ECR
-      run: |
-        docker push \
-        ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/web-api:latest
+    -name: Push image to ECR
+    run: |
+      docker push\
+       ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/web-api:latest
 
-    - name: Update kubeconfig
-      run: |
-        aws eks update-kubeconfig --region $AWS_REGION --name $CLUSTER_NAME
-
-    - name: Deploy to Kubernetes
-      run: |
-        kubectl apply -f kubernetes/
-        kubectl rollout restart deployment web-api-deployment
+    -name: Update kubeconfig
+    run: |
+      aws eks update-kubeconfig --region $AWS_REGION --name $CLUSTER_NAME
+    
+    -name: Deploy Kubernetes
+    run: |
+      kubectl apply -f kubernetes/
+      kubectl rollout restart deployment web-api-deployment
